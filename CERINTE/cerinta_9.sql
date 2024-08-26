@@ -18,6 +18,8 @@ Exceptiile care pot aparea:
 - id_utilizator are mai multe grupuri (TOO_MANY_ROWS) -> se continua cu id-ul grupului cel mai mic.
 */
 
+SET SERVEROUTPUT ON;
+
 CREATE OR REPLACE PROCEDURE cerinta_9(p_id_utilizator INT) IS
     v_tip_utilizator utilizatori.tip_utilizator%TYPE;
     v_nume_grup grupuri.nume_grup%TYPE;

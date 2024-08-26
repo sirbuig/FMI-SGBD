@@ -30,8 +30,8 @@ CREATE SEQUENCE seq_elevi START WITH 100 INCREMENT BY 1;
 DROP SEQUENCE seq_studenti;
 CREATE SEQUENCE seq_studenti START WITH 100 INCREMENT BY 1;
 
-DROP SEQUENCE seq_profesori;
-CREATE SEQUENCE seq_profesori START WITH 100 INCREMENT BY 1;
+DROP SEQUENCE seq_utilizatori;
+CREATE SEQUENCE seq_utilizatori START WITH 100 INCREMENT BY 1;
 
 
 CREATE TABLE utilizatori (
@@ -447,7 +447,7 @@ INSERT INTO resurse VALUES(1, 'Istoria Artei', 'Un document care examinează evo
 INSERT INTO resurse VALUES(2, 'Istoria Românilor', 'Analiză cronologică a evenimentelor majore din istoria românilor.', 'Articol');
 INSERT INTO resurse VALUES(3, 'Teoria Numerelor', 'Introducere în teoria numerelor, numere prime, divizibilitate, criptografie.', 'Articol');
 INSERT INTO resurse VALUES(4, 'Stilistică și Poetică', 'Explorează stilistica limbii și elementele poetice în literatură.', 'Articol');
-INSERT INTO resurse VALUES(5, 'Baze de Date Relaționale', 'Coveră conceptele bazelor de date relaționale și utilizarea eficientă.', 'Articol');
+INSERT INTO resurse VALUES(5, 'Baze de Date Relaționale', 'Acopera conceptele bazelor de date relaționale și utilizarea lor eficientă.', 'Articol');
 INSERT INTO resurse VALUES(6, 'Criticism Literar', 'Discută abordări ale criticismului literar și aplicarea acestora.', 'Video');
 INSERT INTO resurse VALUES(7, 'Probabilități și Statistică', 'Bazele teoriei probabilităților și statistică cu aplicații în științe.', 'Articol');
 INSERT INTO resurse VALUES(8, 'Algoritmi și Structuri de Date', 'Introducere în algoritmica cu exemple vizuale pentru structuri de date.', 'Video');
@@ -757,6 +757,15 @@ CREATE OR REPLACE PROCEDURE cerinta_7 IS
             WHERE uac.id_clasa = c.id_clasa
         );
     
+    CURSOR c_resurse (p_id_clasa INT) IS
+        SELECT r.id_resursa, r.titlu, u.nume, u.prenume, u.tip_utilizator
+        FROM utilizatori_acceseaza_resurse uar
+        JOIN resurse r ON uar.id_resursa = r.id_resursa
+        JOIN utilizatori u ON uar.id_utilizator = u.id_utilizator
+        JOIN utilizatori_apartin_in_clase uac ON u.id_utilizator = uac.id_utilizator
+        WHERE uac.id_clasa = p_id_clasa
+        GROUP BY r.id_resursa, r.titlu, u.nume, u.prenume, u.tip_utilizator;
+    
     CURSOR c_accesari_totale_resurse (p_id_resursa INT) IS
         SELECT COUNT(*) AS nr_accesari_totale
         FROM utilizatori_acceseaza_resurse
@@ -771,16 +780,6 @@ BEGIN
         
         DECLARE
             v_resurse_gasite BOOLEAN := FALSE;
-            
-            CURSOR c_resurse (p_id_clasa INT) IS
-                SELECT r.id_resursa, r.titlu, u.nume, u.prenume, u.tip_utilizator
-                FROM utilizatori_acceseaza_resurse uar
-                JOIN resurse r ON uar.id_resursa = r.id_resursa
-                JOIN utilizatori u ON uar.id_utilizator = u.id_utilizator
-                JOIN utilizatori_apartin_in_clase uac ON u.id_utilizator = uac.id_utilizator
-                WHERE uac.id_clasa = p_id_clasa
-                GROUP BY r.id_resursa, r.titlu, u.nume, u.prenume, u.tip_utilizator;
-                
         BEGIN
             FOR v_resursa IN c_resurse(v_profesor.id_clasa) LOOP
                 v_resurse_gasite := TRUE;
@@ -793,9 +792,9 @@ BEGIN
                     v_tip_utilizator := 'utilizatorul';
                 END IF;
                 
-                FOR v_accesari IN c_accesari_totale_resurse(v_resursa.id_resursa) LOOP
-                    v_nr_accesari_totale := v_accesari.nr_accesari_totale;
-                END LOOP;
+                OPEN c_accesari_totale_resurse(v_resursa.id_resursa);
+                FETCH c_accesari_totale_resurse INTO v_nr_accesari_totale;
+                CLOSE c_accesari_totale_resurse;
                 
                 DBMS_OUTPUT.PUT_LINE('---Resursa ' || v_resursa.titlu || ' accesata de ' || v_tip_utilizator || ' ' || v_resursa.nume || ' ' || v_resursa.prenume);
                 DBMS_OUTPUT.PUT_LINE('------Accesari totale resursa: ' || v_nr_accesari_totale);
@@ -1168,6 +1167,8 @@ DROP TRIGGER cerinta_12;
 Definiți un pachet care să conțină toate obiectele definite în cadrul proiectului.
 */
 
+SET SERVEROUTPUT ON;
+
 CREATE OR REPLACE PACKAGE pachet_learnitude AS
 
   FUNCTION cerinta_8(id_clasa_param IN INT) RETURN SYS_REFCURSOR;
@@ -1243,6 +1244,15 @@ CREATE OR REPLACE PACKAGE BODY pachet_learnitude AS
                 WHERE uac.id_clasa = c.id_clasa
             );
         
+        CURSOR c_resurse (p_id_clasa INT) IS
+            SELECT r.id_resursa, r.titlu, u.nume, u.prenume, u.tip_utilizator
+            FROM utilizatori_acceseaza_resurse uar
+            JOIN resurse r ON uar.id_resursa = r.id_resursa
+            JOIN utilizatori u ON uar.id_utilizator = u.id_utilizator
+            JOIN utilizatori_apartin_in_clase uac ON u.id_utilizator = uac.id_utilizator
+            WHERE uac.id_clasa = p_id_clasa
+            GROUP BY r.id_resursa, r.titlu, u.nume, u.prenume, u.tip_utilizator;
+        
         CURSOR c_accesari_totale_resurse (p_id_resursa INT) IS
             SELECT COUNT(*) AS nr_accesari_totale
             FROM utilizatori_acceseaza_resurse
@@ -1257,16 +1267,6 @@ CREATE OR REPLACE PACKAGE BODY pachet_learnitude AS
             
             DECLARE
                 v_resurse_gasite BOOLEAN := FALSE;
-                
-                CURSOR c_resurse (p_id_clasa INT) IS
-                    SELECT r.id_resursa, r.titlu, u.nume, u.prenume, u.tip_utilizator
-                    FROM utilizatori_acceseaza_resurse uar
-                    JOIN resurse r ON uar.id_resursa = r.id_resursa
-                    JOIN utilizatori u ON uar.id_utilizator = u.id_utilizator
-                    JOIN utilizatori_apartin_in_clase uac ON u.id_utilizator = uac.id_utilizator
-                    WHERE uac.id_clasa = p_id_clasa
-                    GROUP BY r.id_resursa, r.titlu, u.nume, u.prenume, u.tip_utilizator;
-                    
             BEGIN
                 FOR v_resursa IN c_resurse(v_profesor.id_clasa) LOOP
                     v_resurse_gasite := TRUE;
@@ -1279,9 +1279,9 @@ CREATE OR REPLACE PACKAGE BODY pachet_learnitude AS
                         v_tip_utilizator := 'utilizatorul';
                     END IF;
                     
-                    FOR v_accesari IN c_accesari_totale_resurse(v_resursa.id_resursa) LOOP
-                        v_nr_accesari_totale := v_accesari.nr_accesari_totale;
-                    END LOOP;
+                    OPEN c_accesari_totale_resurse(v_resursa.id_resursa);
+                    FETCH c_accesari_totale_resurse INTO v_nr_accesari_totale;
+                    CLOSE c_accesari_totale_resurse;
                     
                     DBMS_OUTPUT.PUT_LINE('---Resursa ' || v_resursa.titlu || ' accesata de ' || v_tip_utilizator || ' ' || v_resursa.nume || ' ' || v_resursa.prenume);
                     DBMS_OUTPUT.PUT_LINE('------Accesari totale resursa: ' || v_nr_accesari_totale);
