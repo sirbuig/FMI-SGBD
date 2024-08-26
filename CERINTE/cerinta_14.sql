@@ -1,5 +1,10 @@
 -- Cerinta cu numarul 14
 
+SET SERVEROUTPUT ON;
+
+DROP TYPE tip_rezultat_acces_resursa_tab;
+DROP TYPE tip_rezultat_acces_resursa_rec;
+
 CREATE OR REPLACE TYPE tip_rezultat_acces_resursa_rec AS OBJECT (
     id_utilizator INT,
     id_resursa INT,
